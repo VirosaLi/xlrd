@@ -3,17 +3,13 @@
 # BSD-style licence.
 
 import gc
+from time import perf_counter
 
 from . import compdoc, formatting, sheet
 from .biffh import *
 from .formula import *
 from .timemachine import *
 
-try:
-    from time import perf_counter
-except ImportError:
-    # Python 2.7
-    from time import clock as perf_counter
 
 import struct
 

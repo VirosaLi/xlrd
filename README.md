@@ -18,7 +18,7 @@ For more background to this: https://groups.google.com/d/msg/python-excel/P6TjJg
 
 **Licence**: BSD-style (see licences.py)
 
-**Versions of Python supported**: 2.7, 3.4+.
+**Versions of Python supported**: 3.7, and 3.8.
 
 **Outside scope**: xlrd will safely and reliably ignore any of these if present in the file:
 
