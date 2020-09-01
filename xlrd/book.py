@@ -4,6 +4,7 @@
 
 import gc
 from time import perf_counter
+from mmap import mmap, ACCESS_READ
 
 from . import compdoc, formatting, sheet
 from .biffh import *
@@ -24,13 +25,8 @@ USE_FANCY_CD = 1
 TOGGLE_GC = 0
 # gc.set_debug(gc.DEBUG_STATS)
 
-try:
-    import mmap
 
-    MMAP_AVAILABLE = 1
-except ImportError:
-    MMAP_AVAILABLE = 0
-USE_MMAP = MMAP_AVAILABLE
+USE_MMAP = 1
 
 MY_EOF = 0xF00BAAA  # not a 16-bit number
 
@@ -562,7 +558,7 @@ class Book(BaseObject):
         """
         This method has a dual purpose. You can call it to release
         memory-consuming objects and (possibly) a memory-mapped file
-        (:class:`mmap.mmap` object) when you have finished loading sheets in
+        (:class:`mmap` object) when you have finished loading sheets in
         ``on_demand`` mode, but still require the :class:`Book` object to
         examine the loaded sheets. It is also called automatically (a) when
         :func:`~xlrd.open_workbook`
@@ -572,7 +568,7 @@ class Book(BaseObject):
         """
         self._resources_released = 1
         if hasattr(self.mem, "close"):
-            # must be a mmap.mmap object
+            # must be a mmap object
             self.mem.close()
         self.mem = None
         if hasattr(self.filestr, "close"):
@@ -666,7 +662,7 @@ class Book(BaseObject):
                 if size == 0:
                     raise XLRDError("File size is 0 bytes")
                 if self.use_mmap:
-                    self.filestr = mmap.mmap(f.fileno(), size, access=mmap.ACCESS_READ)
+                    self.filestr = mmap(f.fileno(), size, access=ACCESS_READ)
                     self.stream_len = size
                 else:
                     self.filestr = f.read()
