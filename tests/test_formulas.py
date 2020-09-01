@@ -7,16 +7,6 @@ import xlrd
 
 from .base import from_this_dir
 
-try:
-    ascii
-except NameError:
-    # For Python 2
-    def ascii(s):
-        a = repr(s)
-        if a.startswith(('u"', "u'")):
-            a = a[1:]
-        return a
-
 
 class TestFormulas(TestCase):
     def setUp(self):
