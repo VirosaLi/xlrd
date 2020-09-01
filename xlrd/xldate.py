@@ -33,23 +33,23 @@ _XLDAYS_TOO_LARGE = (2958466, 2958466 - 1462)
 
 
 class XLDateError(ValueError):
-    "A base class for all datetime-related errors."
+    """A base class for all datetime-related errors."""
 
 
 class XLDateNegative(XLDateError):
-    "``xldate < 0.00``"
+    """``xldate < 0.00``"""
 
 
 class XLDateAmbiguous(XLDateError):
-    "The 1900 leap-year problem ``(datemode == 0 and 1.0 <= xldate < 61.0)``"
+    """The 1900 leap-year problem ``(datemode == 0 and 1.0 <= xldate < 61.0)``"""
 
 
 class XLDateTooLarge(XLDateError):
-    "Gregorian year 10000 or later"
+    """Gregorian year 10000 or later"""
 
 
 class XLDateBadDatemode(XLDateError):
-    "``datemode`` arg is neither 0 nor 1"
+    """``datemode`` arg is neither 0 nor 1"""
 
 
 class XLDateBadTuple(XLDateError):
@@ -91,7 +91,7 @@ def xldate_as_tuple(xldate, datemode):
     if datemode not in (0, 1):
         raise XLDateBadDatemode(datemode)
     if xldate == 0.00:
-        return (0, 0, 0, 0, 0, 0)
+        return 0, 0, 0, 0, 0, 0
     if xldate < 0.00:
         raise XLDateNegative(xldate)
     xldays = int(xldate)
@@ -110,7 +110,7 @@ def xldate_as_tuple(xldate, datemode):
         raise XLDateTooLarge(xldate)
 
     if xldays == 0:
-        return (0, 0, 0, hour, minute, second)
+        return 0, 0, 0, hour, minute, second
 
     if xldays < 61 and datemode == 0:
         raise XLDateAmbiguous(xldate)
@@ -122,9 +122,9 @@ def xldate_as_tuple(xldate, datemode):
     # mp /= 16384
     mp >>= 14
     if mp >= 10:
-        return ((yreg // 1461) - 4715, mp - 9, d, hour, minute, second)
+        return (yreg // 1461) - 4715, mp - 9, d, hour, minute, second
     else:
-        return ((yreg // 1461) - 4716, mp + 3, d, hour, minute, second)
+        return (yreg // 1461) - 4716, mp + 3, d, hour, minute, second
 
 
 def xldate_as_datetime(xldate, datemode):
@@ -161,11 +161,16 @@ def xldate_as_datetime(xldate, datemode):
 
 # === conversions from date/time to xl numbers
 
+
 def _leap(y):
-    if y % 4: return 0
-    if y % 100: return 1
-    if y % 400: return 0
+    if y % 4:
+        return 0
+    if y % 100:
+        return 1
+    if y % 400:
+        return 0
     return 1
+
 
 _days_in_month = (None, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31)
 
@@ -196,8 +201,9 @@ def xldate_from_date_tuple(date_tuple, datemode):
         raise XLDateBadTuple("Invalid year: %r" % ((year, month, day),))
     if not (1 <= month <= 12):
         raise XLDateBadTuple("Invalid month: %r" % ((year, month, day),))
-    if  (day < 1 or
-         (day > _days_in_month[month] and not(day == 29 and month == 2 and _leap(year)))):
+    if day < 1 or (
+        day > _days_in_month[month] and not (day == 29 and month == 2 and _leap(year))
+    ):
         raise XLDateBadTuple("Invalid day: %r" % ((year, month, day),))
 
     Yp = year + 4716
@@ -207,8 +213,13 @@ def xldate_from_date_tuple(date_tuple, datemode):
         Mp = M + 9
     else:
         Mp = M - 3
-    jdn = (1461 * Yp // 4) + ((979 * Mp + 16) // 32) + \
-        day - 1364 - (((Yp + 184) // 100) * 3 // 4)
+    jdn = (
+        (1461 * Yp // 4)
+        + ((979 * Mp + 16) // 32)
+        + day
+        - 1364
+        - (((Yp + 184) // 100) * 3 // 4)
+    )
     xldays = jdn - _JDN_delta[datemode]
     if xldays <= 0:
         raise XLDateBadTuple("Invalid (year, month, day): %r" % ((year, month, day),))
@@ -230,7 +241,9 @@ def xldate_from_time_tuple(time_tuple):
     hour, minute, second = time_tuple
     if 0 <= hour < 24 and 0 <= minute < 60 and 0 <= second < 60:
         return ((second / 60.0 + minute) / 60.0 + hour) / 24.0
-    raise XLDateBadTuple("Invalid (hour, minute, second): %r" % ((hour, minute, second),))
+    raise XLDateBadTuple(
+        "Invalid (hour, minute, second): %r" % ((hour, minute, second),)
+    )
 
 
 def xldate_from_datetime_tuple(datetime_tuple, datemode):
@@ -242,7 +255,6 @@ def xldate_from_datetime_tuple(datetime_tuple, datemode):
     :param datetime_tuple: ``(year, month, day, hour, minute, second)``
     :param datemode: 0: 1900-based, 1: 1904-based.
     """
-    return (
-        xldate_from_date_tuple(datetime_tuple[:3], datemode) +
-        xldate_from_time_tuple(datetime_tuple[3:])
-    )
+    return xldate_from_date_tuple(
+        datetime_tuple[:3], datemode
+    ) + xldate_from_time_tuple(datetime_tuple[3:])

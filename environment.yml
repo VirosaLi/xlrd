@@ -1,0 +1,14 @@
+name: xlrd-dev
+channels:
+  - conda-forge
+
+dependencies:
+  - python=3
+
+  # style
+  - isort
+  - black
+
+  # test
+  - pytest
+  - hypothesis

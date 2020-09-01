@@ -3,7 +3,12 @@
 # This script is part of the xlrd package, which is released under a
 # BSD-style licence.
 
-from __future__ import print_function
+import xlrd
+import sys
+import time
+import glob
+import traceback
+import gc
 
 cmd_doc = """
 Commands:
@@ -31,17 +36,8 @@ xfc             Print "XF counts" and cell-type counts -- see code for details
 
 options = None
 if __name__ == "__main__":
-    import xlrd
-    import sys
-    import time
-    import glob
-    import traceback
-    import gc
 
-    from xlrd.timemachine import xrange, REPR
-
-
-    class LogHandler(object):
+    class LogHandler:
 
         def __init__(self, logfileobj):
             self.logfileobj = logfileobj
@@ -58,7 +54,9 @@ if __name__ == "__main__":
                 self.shown = 1
             self.logfileobj.write(text)
 
+
     null_cell = xlrd.empty_cell
+
 
     def show_row(bk, sh, rowx, colrange, printit):
         if bk.ragged_rows:
@@ -68,12 +66,12 @@ if __name__ == "__main__":
         if bk.formatting_info:
             for colx, ty, val, cxfx in get_row_data(bk, sh, rowx, colrange):
                 if printit:
-                    print("cell %s%d: type=%d, data: %r, xfx: %s"
-                        % (xlrd.colname(colx), rowx+1, ty, val, cxfx))
+                    print(f"cell {xlrd.colname(colx)}{rowx + 1:d}: type={ty:d}, data: {val!r}, xfx: {cxfx}")
         else:
             for colx, ty, val, _unused in get_row_data(bk, sh, rowx, colrange):
                 if printit:
-                    print("cell %s%d: type=%d, data: %r" % (xlrd.colname(colx), rowx+1, ty, val))
+                    print(f"cell {xlrd.colname(colx)}{rowx + 1:d}: type={ty:d}, data: {val!r}")
+
 
     def get_row_data(bk, sh, rowx, colrange):
         result = []
@@ -100,30 +98,29 @@ if __name__ == "__main__":
             result.append((colx, cty, showval, cxfx))
         return result
 
+
     def bk_header(bk):
         print()
-        print("BIFF version: %s; datemode: %s"
-            % (xlrd.biff_text_from_num[bk.biff_version], bk.datemode))
-        print("codepage: %r (encoding: %s); countries: %r"
-            % (bk.codepage, bk.encoding, bk.countries))
-        print("Last saved by: %r" % bk.user_name)
-        print("Number of data sheets: %d" % bk.nsheets)
-        print("Use mmap: %d; Formatting: %d; On demand: %d"
-            % (bk.use_mmap, bk.formatting_info, bk.on_demand))
-        print("Ragged rows: %d" % bk.ragged_rows)
+        print(f"BIFF version: {xlrd.biff_text_from_num[bk.biff_version]}; datemode: {bk.datemode}")
+        print(f"codepage: {bk.codepage!r} (encoding: {bk.encoding}); countries: {bk.countries!r}")
+        print(f"Last saved by: {bk.user_name!r}")
+        print(f"Number of data sheets: {bk.nsheets:d}")
+        print(f"Use mmap: {bk.use_mmap:d}; Formatting: {bk.formatting_info:d}; On demand: {bk.on_demand:d}")
+        print(f"Ragged rows: {bk.ragged_rows:d}")
         if bk.formatting_info:
-            print("FORMATs: %d, FONTs: %d, XFs: %d"
-                % (len(bk.format_list), len(bk.font_list), len(bk.xf_list)))
+            print(f"FORMATs: {len(bk.format_list):d}, FONTs: {len(bk.font_list):d}, XFs: {len(bk.xf_list):d}")
         if not options.suppress_timing:
-            print("Load time: %.2f seconds (stage 1) %.2f seconds (stage 2)"
-                % (bk.load_time_stage_1, bk.load_time_stage_2))
+            print(
+                f"Load time: {bk.load_time_stage_1:.2f} seconds (stage 1) {bk.load_time_stage_2:.2f} seconds (stage 2)")
         print()
+
 
     def show_fonts(bk):
         print("Fonts:")
-        for x in xrange(len(bk.font_list)):
+        for x in range(len(bk.font_list)):
             font = bk.font_list[x]
             font.dump(header='== Index %d ==' % x, indent=4)
+
 
     def show_names(bk, dump=0):
         bk_header(bk)
@@ -131,23 +128,25 @@ if __name__ == "__main__":
             print("Names not extracted in this BIFF version")
             return
         nlist = bk.name_obj_list
-        print("Name list: %d entries" % len(nlist))
+        print(f"Name list: {len(nlist):d} entries")
         for nobj in nlist:
             if dump:
                 nobj.dump(sys.stdout,
-                    header="\n=== Dump of name_obj_list[%d] ===" % nobj.name_index)
+                          header="\n=== Dump of name_obj_list[%d] ===" % nobj.name_index)
             else:
-                print("[%d]\tName:%r macro:%r scope:%d\n\tresult:%r\n"
-                    % (nobj.name_index, nobj.name, nobj.macro, nobj.scope, nobj.result))
+                print(
+                    f"[{nobj.name_index:d}]\tName:{nobj.name!r} macro:{nobj.macro!r} scope:{nobj.scope:d}\n\tresult:{nobj.result!r}\n")
+
 
     def print_labels(sh, labs, title):
-        if not labs:return
+        if not labs: return
         for rlo, rhi, clo, chi in labs:
             print("%s label range %s:%s contains:"
-                % (title, xlrd.cellname(rlo, clo), xlrd.cellname(rhi-1, chi-1)))
-            for rx in xrange(rlo, rhi):
-                for cx in xrange(clo, chi):
+                  % (title, xlrd.cellname(rlo, clo), xlrd.cellname(rhi - 1, chi - 1)))
+            for rx in range(rlo, rhi):
+                for cx in range(clo, chi):
                     print("    %s: %r" % (xlrd.cellname(rx, cx), sh.cell_value(rx, cx)))
+
 
     def show_labels(bk):
         # bk_header(bk)
@@ -161,19 +160,14 @@ if __name__ == "__main__":
                     bk_header(bk)
                     hdr = 1
                 print("sheet %d: name = %r; nrows = %d; ncols = %d" %
-                    (shx, sh.name, sh.nrows, sh.ncols))
+                      (shx, sh.name, sh.nrows, sh.ncols))
                 print_labels(sh, clabs, 'Col')
                 print_labels(sh, rlabs, 'Row')
             if bk.on_demand: bk.unload_sheet(shx)
 
+
     def show(bk, nshow=65535, printit=1):
         bk_header(bk)
-        if 0:
-            rclist = xlrd.sheet.rc_stats.items()
-            rclist = sorted(rclist)
-            print("rc stats")
-            for k, v in rclist:
-                print("0x%04x %7d" % (k, v))
         if options.onesheet:
             try:
                 shx = int(options.onesheet)
@@ -188,36 +182,35 @@ if __name__ == "__main__":
             nrows, ncols = sh.nrows, sh.ncols
             colrange = range(ncols)
             anshow = min(nshow, nrows)
-            print("sheet %d: name = %s; nrows = %d; ncols = %d" %
-                (shx, REPR(sh.name), sh.nrows, sh.ncols))
+            print(f"sheet {shx:d}: name = {ascii(sh.name)}; nrows = {sh.nrows:d}; ncols = {sh.ncols:d}")
             if nrows and ncols:
                 # Beat the bounds
-                for rowx in xrange(nrows):
+                for rowx in range(nrows):
                     nc = sh.row_len(rowx)
                     if nc:
-                        sh.row_types(rowx)[nc-1]
-                        sh.row_values(rowx)[nc-1]
-                        sh.cell(rowx, nc-1)
-            for rowx in xrange(anshow-1):
+                        sh.row_types(rowx)[nc - 1]
+                        sh.row_values(rowx)[nc - 1]
+                        sh.cell(rowx, nc - 1)
+            for rowx in range(anshow - 1):
                 if not printit and rowx % 10000 == 1 and rowx > 1:
-                    print("done %d rows" % (rowx-1,))
+                    print(f"done {rowx - 1:d} rows")
                 show_row(bk, sh, rowx, colrange, printit)
             if anshow and nrows:
-                show_row(bk, sh, nrows-1, colrange, printit)
+                show_row(bk, sh, nrows - 1, colrange, printit)
             print()
             if bk.on_demand: bk.unload_sheet(shx)
+
 
     def count_xfs(bk):
         bk_header(bk)
         for shx in range(bk.nsheets):
             sh = bk.sheet_by_index(shx)
             nrows = sh.nrows
-            print("sheet %d: name = %r; nrows = %d; ncols = %d" %
-                (shx, sh.name, sh.nrows, sh.ncols))
+            print(f"sheet {shx:d}: name = {sh.name!r}; nrows = {sh.nrows:d}; ncols = {sh.ncols:d}")
             # Access all xfindexes to force gathering stats
             type_stats = [0, 0, 0, 0, 0, 0, 0]
-            for rowx in xrange(nrows):
-                for colx in xrange(sh.row_len(rowx)):
+            for rowx in range(nrows):
+                for colx in range(sh.row_len(rowx)):
                     xfx = sh.cell_xf_index(rowx, colx)
                     assert xfx >= 0
                     cty = sh.cell_type(rowx, colx)
@@ -225,7 +218,9 @@ if __name__ == "__main__":
             print("XF stats", sh._xf_index_stats)
             print("type stats", type_stats)
             print()
-            if bk.on_demand: bk.unload_sheet(shx)
+            if bk.on_demand:
+                bk.unload_sheet(shx)
+
 
     def main(cmd_args):
         import optparse
@@ -279,10 +274,10 @@ if __name__ == "__main__":
             action="store_true", default=0,
             help="open_workbook(..., ragged_rows=True)")
         options, args = oparser.parse_args(cmd_args)
-        if len(args) == 1 and args[0] in ("version", ):
+        if len(args) == 1 and args[0] in ("version",):
             pass
         elif len(args) < 2:
-            oparser.error("Expected at least 2 args, found %d" % len(args))
+            oparser.error(f"Expected at least 2 args, found {len(args):d}")
         cmd = args[0]
         xlrd_version = getattr(xlrd, "__VERSION__", "unknown; before 0.5")
         if cmd == 'biff_dump':
@@ -292,7 +287,7 @@ if __name__ == "__main__":
             xlrd.count_records(args[1])
             sys.exit(0)
         if cmd == 'version':
-            print("xlrd: %s, from %s" % (xlrd_version, xlrd.__file__))
+            print(f"xlrd: {xlrd_version}, from {xlrd.__file__}")
             print("Python:", sys.version)
             sys.exit(0)
         if options.logfilename:
@@ -304,14 +299,14 @@ if __name__ == "__main__":
         if mmap_opt in (1, 0):
             mmap_arg = mmap_opt
         elif mmap_opt != -1:
-            print('Unexpected value (%r) for mmap option -- assuming default' % mmap_opt)
-        fmt_opt = options.formatting | (cmd in ('xfc', ))
+            print(f'Unexpected value ({mmap_opt!r}) for mmap option -- assuming default')
+        fmt_opt = options.formatting | (cmd in ('xfc',))
         gc_mode = options.gc
         if gc_mode:
             gc.disable()
         for pattern in args[1:]:
             for fname in glob.glob(pattern):
-                print("\n=== File: %s ===" % fname)
+                print(f"\n=== File: {fname} ===")
                 if logfile != sys.stdout:
                     logfile.setfileheading("\n=== File: %s ===\n" % fname)
                 if gc_mode == 1:
@@ -331,44 +326,44 @@ if __name__ == "__main__":
                     )
                     t1 = time.time()
                     if not options.suppress_timing:
-                        print("Open took %.2f seconds" % (t1-t0,))
+                        print(f"Open took {t1 - t0:.2f} seconds")
                 except xlrd.XLRDError as e:
-                    print("*** Open failed: %s: %s" % (type(e).__name__, e))
+                    print(f"*** Open failed: {type(e).__name__}: {e}")
                     continue
                 except KeyboardInterrupt:
                     print("*** KeyboardInterrupt ***")
                     traceback.print_exc(file=sys.stdout)
                     sys.exit(1)
                 except BaseException as e:
-                    print("*** Open failed: %s: %s" % (type(e).__name__, e))
+                    print(f"*** Open failed: {type(e).__name__}: {e}")
                     traceback.print_exc(file=sys.stdout)
                     continue
                 t0 = time.time()
                 if cmd == 'hdr':
                     bk_header(bk)
-                elif cmd == 'ov': # OverView
+                elif cmd == 'ov':  # OverView
                     show(bk, 0)
-                elif cmd == 'show': # all rows
+                elif cmd == 'show':  # all rows
                     show(bk)
-                elif cmd == '2rows': # first row and last row
+                elif cmd == '2rows':  # first row and last row
                     show(bk, 2)
-                elif cmd == '3rows': # first row, 2nd row and last row
+                elif cmd == '3rows':  # first row, 2nd row and last row
                     show(bk, 3)
                 elif cmd == 'bench':
                     show(bk, printit=0)
                 elif cmd == 'fonts':
                     bk_header(bk)
                     show_fonts(bk)
-                elif cmd == 'names': # named reference list
+                elif cmd == 'names':  # named reference list
                     show_names(bk)
-                elif cmd == 'name_dump': # named reference list
+                elif cmd == 'name_dump':  # named reference list
                     show_names(bk, dump=1)
                 elif cmd == 'labels':
                     show_labels(bk)
                 elif cmd == 'xfc':
                     count_xfs(bk)
                 else:
-                    print("*** Unknown command <%s>" % cmd)
+                    print(f"*** Unknown command <{cmd}>")
                     sys.exit(1)
                 del bk
                 if gc_mode == 1:
@@ -377,9 +372,10 @@ if __name__ == "__main__":
                         print("GC post cmd:", fname, "->", n_unreachable, "unreachable objects")
                 if not options.suppress_timing:
                     t1 = time.time()
-                    print("\ncommand took %.2f seconds\n" % (t1-t0,))
+                    print(f"\ncommand took {t1 - t0:.2f} seconds\n")
 
         return None
+
 
     av = sys.argv[1:]
     if not av:
@@ -388,11 +384,12 @@ if __name__ == "__main__":
     if firstarg == "hotshot":
         import hotshot
         import hotshot.stats
+
         av = av[1:]
         prof_log_name = "XXXX.prof"
         prof = hotshot.Profile(prof_log_name)
         # benchtime, result = prof.runcall(main, *av)
-        result = prof.runcall(main, *(av, ))
+        result = prof.runcall(main, *(av,))
         print("result", repr(result))
         prof.close()
         stats = hotshot.stats.load(prof_log_name)
@@ -401,9 +398,11 @@ if __name__ == "__main__":
         stats.print_stats(20)
     elif firstarg == "profile":
         import cProfile
+
         av = av[1:]
         cProfile.run('main(av)', 'YYYY.prof')
         import pstats
+
         p = pstats.Stats('YYYY.prof')
         p.strip_dirs().sort_stats('cumulative').print_stats(30)
     else:
